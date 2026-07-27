@@ -3,11 +3,11 @@ set -euo pipefail
 
 # =========================================
 # 🚀 KIANA-3.1 GCP DEPLOYER | FINAL VERSION
-# ✅ CUSTOM FIREBASE SNI + FULL IMPORT LINKS
+# ✅ CORRECT FIREBASE SNI + FULL IMPORT LINKS
 # ✅ AUTO MODE: 3 PRESETS | MANUAL MODE
 # ✅ REGION SELECTOR + TAIWAN
 # ✅ BALANCED XRAY/NGINX CONFIG
-# ✅ AUTO-SAVE LINKS + DALI KOPYAHON
+# ✅ AUTO-SAVE LINKS + EASY TO COPY
 # =========================================
 
 GREEN='\033[1;32m'
@@ -196,7 +196,7 @@ deploy_new_service() {
               while true; do
                   read -p "Max Instances [1-2, default=1]: " MAX_INST
                   MAX_INST=${MAX_INST:-1}
-                  [[ "$MAX_INST" =~ ^[1-2]$ ]] && break || echo -e "${RED}Only 1-2 allowed${NC}"
+                  [[ "$MAX_INST" =~ ^[1-2]$ ]] && break || echo -e "${RED}Only 1 or 2 allowed${NC}"
               done
               break
               ;;
@@ -289,20 +289,27 @@ EOF
     --timeout $TIMEOUT --min-instances $MIN_INST --max-instances $MAX_INST \
     --execution-environment gen2 --cpu-boost $BILLING_FLAGS --quiet
 
-  # Get final Domain
+  # Get Final Domain
   CLOUD_RUN_URL=$(gcloud run services describe $CLOUD_RUN_SERVICE_NAME --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')
   REAL_DOMAIN=$(echo "$CLOUD_RUN_URL" | sed 's|https://||')
 
-  # Generate Final Links with Custom Firebase SNI
+  # ==============================================
+  # ✅ CORRECT LINK GENERATION - EXACT FORMAT
+  # ==============================================
   TR_PATH_ENC="%2Ftr-ws%3Fed%3D2560"
   VL_PATH_ENC="%2Fvl-ws%3Fed%3D2560"
   PASSWORD="kiana-2"
   UUID="a1b2c3d4-5678-40ef-98ab-cdef01234567"
 
-  TROJAN_LINK="trojan://${PASSWORD}@firebase-settings.crashlytics.com:443?path=${TR_PATH_ENC}&security=tls&type=ws&sni=firebase-settings.crashlytics.com&host=${REAL_DOMAIN}#KIANA-Trojan-${REGION}"
-  VLESS_LINK="vless://${UUID}@firebaseremoteconfigrealtime.googleapis.com:443?encryption=none&path=${VL_PATH_ENC}&security=tls&type=ws&sni=firebaseremoteconfigrealtime.googleapis.com&host=${REAL_DOMAIN}#KIANA-VLESS-${REGION}"
+  # VLESS: Address+SNI = firebase-settings.crashlytics.com
+  VLESS_LINK="vless://${UUID}@firebase-settings.crashlytics.com:443?encryption=none&type=ws&host=${REAL_DOMAIN}&headerType=none&path=${VL_PATH_ENC}&security=tls&fp=chrome&sni=firebase-settings.crashlytics.com&alpn=h2%2C%20http%2F1.1#KIANA-3.1"
 
-  # Final Output
+  # TROJAN: Address+SNI = firebaseremoteconfigrealtime.googleapis.com
+  TROJAN_LINK="trojan://${PASSWORD}@firebaseremoteconfigrealtime.googleapis.com:443?type=ws&host=${REAL_DOMAIN}&headerType=none&path=${TR_PATH_ENC}&security=tls&fp=chrome&sni=firebaseremoteconfigrealtime.googleapis.com&alpn=h2%2C%20http%2F1.1#KIANA-3.1"
+
+  # ==============================================
+  # FINAL OUTPUT - SINGLE LINE, EASY TO COPY
+  # ==============================================
   clear
   echo -e "\n${CYAN}=========================================${NC}"
   echo -e "${GREEN}✅ DEPLOYMENT SUCCESS!${NC}"
@@ -311,20 +318,20 @@ EOF
   echo -e "${GREEN}Region:${NC} $REGION"
   echo -e "${GREEN}Real Host Domain:${NC} $REAL_DOMAIN"
   echo ""
-  echo -e "${GREEN}🔗 FULL IMPORT LINKS (Click & Copy):${NC}"
-  echo -e "${CYAN}🔹 TROJAN LINK:${NC}"
-  echo "$TROJAN_LINK"
-  echo -e "\n${CYAN}🔹 VLESS LINK:${NC}"
+  echo -e "${GREEN}🔹 VLESS LINK (Long press & copy full line):${NC}"
   echo "$VLESS_LINK"
+  echo -e "\n${GREEN}🔹 TROJAN LINK (Long press & copy full line):${NC}"
+  echo "$TROJAN_LINK"
   echo -e "\n========================================"
-  echo -e "${GREEN}💾 Links saved to: kiana-links-${REGION}.txt${NC}"
+  echo -e "${GREEN}💾 Links also saved to file: kiana-links-${REGION}.txt${NC}"
+  echo -e "${YELLOW}💡 If copying fails, run: cat kiana-links-${REGION}.txt${NC}"
 
+  # Save links to file
   cat > "kiana-links-${REGION}.txt" << EOF
 KIANA PROXY LINKS - REGION: $REGION
-GENERATED: $(date)
 ========================================
-TROJAN: $TROJAN_LINK
 VLESS: $VLESS_LINK
+TROJAN: $TROJAN_LINK
 ========================================
 Host Domain: $REAL_DOMAIN
 Trojan Password: kiana-2
@@ -332,7 +339,7 @@ VLESS UUID: a1b2c3d4-5678-40ef-98ab-cdef01234567
 Path: /tr-ws?ed=2560 | /vl-ws?ed=2560
 EOF
 
-  echo -e "\n${YELLOW}💡 Balanced config = no overheating, stable speeds, low battery drain!${NC}"
+  echo -e "\n${YELLOW}💡 Balanced config: stable speeds, low heat, low battery usage!${NC}"
   read -p "\nPress [Enter] to return to Main Menu..."
 }
 
@@ -342,7 +349,7 @@ EOF
 while true; do
   clear
   echo "======================================"
-  echo "   🚀 KIANA-2.4 GCP DEPLOYER MENU    "
+  echo "   🚀 KIANA-3.1 GCP DEPLOYER MENU    "
   echo "======================================"
   echo "1) Deploy new balanced Xray service"
   echo "2) List all deployed services & URLs"
