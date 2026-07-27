@@ -3,13 +3,13 @@ set -euo pipefail
 
 # =====================================================
 # 🚀 KIANA-3.1 ULTIMATE | GCP CLOUD RUN DEPLOYER (2026)
+# ✅ QWIKLABS FIXED VERSION | COST SECTION REMOVED
 # ✅ Full English | Custom Firebase SNI Preconfigured
 # ✅ Trojan + VLESS WS/TLS | Optional VLESS REALITY
 # ✅ Random credentials | Validated resources | ARM64
-# ✅ NetMod-optimized config output | Cost estimate
 # =====================================================
 # --------------------------
-# 🔧 CUSTOM SNI / ADDRESS (YOUR REQUEST - PRECONFIGURED)
+# 🔧 CUSTOM SNI / ADDRESS
 # --------------------------
 CUSTOM_SNI_VLESS="firebaseremoteconfigrealtime.googleapis.com"
 CUSTOM_SNI_TROJAN="firebase-settings.crashlytics.com"
@@ -70,19 +70,19 @@ delete_service() {
 }
 
 # =====================================================
-# 🗺️ REGION SELECTOR (UPDATED 2026 REGIONS)
+# 🗺️ REGION SELECTOR
 # =====================================================
 select_region() {
   echo -e "\n${CYAN}🌍 SELECT CLOUD RUN REGION${NC}"
   echo "======================================"
   echo "--- NORTH AMERICA ---"
-  echo "1) us-central1      (Iowa, US - Lowest cost)"
+  echo "1) us-central1      (Iowa, US - Lowest cost / Qwiklabs ✅)"
   echo "2) us-east1         (South Carolina, US)"
-  echo "3) us-east4         (N.Virginia, US - Lowest latency PH)"
+  echo "3) us-east4         (N.Virginia, US)"
   echo "4) us-west1         (Oregon, US)"
   echo ""
-  echo "--- ASIA PACIFIC (Lowest latency PH) ---"
-  echo "5) asia-east1       (Taiwan 🇹🇼 - ⭐ RECOMMENDED)"
+  echo "--- ASIA PACIFIC ---"
+  echo "5) asia-east1       (Taiwan 🇹🇼)"
   echo "6) asia-southeast1  (Singapore 🇸🇬)"
   echo "7) asia-southeast2  (Jakarta 🇮🇩)"
   echo "8) asia-south1      (Mumbai 🇮🇳)"
@@ -98,15 +98,15 @@ select_region() {
   echo "0) Enter custom region code manually"
   echo ""
 
-  read -p "Select region [1-14, default=5 Taiwan]: " R
-  R=${R:-5}
+  read -p "Select region [1-14, default=1 us-central1 (Qwiklabs safe)]: " R
+  R=${R:-1}
   case $R in
     1) REGION="us-central1" ;; 2) REGION="us-east1" ;; 3) REGION="us-east4" ;; 4) REGION="us-west1" ;;
     5) REGION="asia-east1" ;; 6) REGION="asia-southeast1" ;; 7) REGION="asia-southeast2" ;; 8) REGION="asia-south1" ;;
     9) REGION="asia-northeast1" ;; 10) REGION="asia-northeast3" ;; 11) REGION="australia-southeast1" ;;
     12) REGION="europe-west1" ;; 13) REGION="europe-west4" ;; 14) REGION="europe-west9" ;;
     0) read -p "Enter full region code (e.g. asia-east1): " REGION ;;
-    *) echo -e "${YELLOW}⚠️ Invalid selection! Defaulting to Taiwan (asia-east1)${NC}"; REGION="asia-east1" ;;
+    *) echo -e "${YELLOW}⚠️ Invalid! Defaulting to us-central1${NC}"; REGION="us-central1" ;;
   esac
   echo -e "${GREEN}✅ Selected Region: $REGION${NC}"
 }
@@ -128,19 +128,27 @@ deploy_service() {
   PROJECT_ID="$(gcloud config get-value project 2>/dev/null)"
   if [ -z "$PROJECT_ID" ]; then
     echo -e "${RED}❌ ERROR: No GCP project selected!${NC}"
-    echo "Run this first: gcloud config set project YOUR_PROJECT_ID"
+    echo "Run: gcloud config set project YOUR_PROJECT_ID"
     read -p "Press [Enter] to return..."
     return
   fi
   echo -e "${CYAN}Active GCP Project: $PROJECT_ID${NC}"
 
+  # Detect Qwiklabs environment automatically
+  if [[ "$PROJECT_ID" == qwiklabs-gcp-* ]]; then
+    QWIKLABS=1
+    echo -e "${YELLOW}ℹ️ Qwiklabs environment detected — applying compatibility fixes${NC}"
+  else
+    QWIKLABS=0
+  fi
+
   # Enable required APIs
   echo -e "${CYAN}Enabling required GCP APIs...${NC}"
   gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
-    artifactregistry.googleapis.com --project="$PROJECT_ID" --quiet >/dev/null 2>&1
+    artifactregistry.googleapis.com --project="$PROJECT_ID" --quiet >/dev/null 2>&1 || true
 
   # --------------------------
-  # 2. AUTO-GENERATE SECURE CREDENTIALS
+  # 2. AUTO-GENERATE CREDENTIALS
   # --------------------------
   UUID="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || openssl rand -hex 16 | \
     sed 's/\(........\)\(....\)\(....\)\(....\)\(............\)/\1-\2-\3-\4-\5/')"
@@ -150,11 +158,10 @@ deploy_service() {
   BUILD_DIR="$(mktemp -d)"
   trap 'rm -rf "$BUILD_DIR"' EXIT
   cd "$BUILD_DIR" || exit 1
-
   echo -e "${GREEN}✅ Generated secure random credentials${NC}"
 
   # --------------------------
-  # 3. REGION SELECTION
+  # 3. REGION
   # --------------------------
   select_region
 
@@ -162,20 +169,20 @@ deploy_service() {
   # 4. CPU ARCHITECTURE
   # --------------------------
   echo -e "\n${CYAN}💻 SELECT CPU ARCHITECTURE${NC}"
-  echo "1) AMD64 (Gen2 - Universal compatibility)"
-  echo "2) ARM64 Graviton (⭐ 20% faster crypto, ~15% cheaper)"
-  read -p "Select [1-2, default=2]: " ARCH
-  ARCH=${ARCH:-2}
+  echo "1) AMD64 (Gen2 - ⭐ QWIKLABS SAFE, universal)"
+  echo "2) ARM64 Graviton (Faster, may fail on Qwiklabs)"
+  read -p "Select [1-2, default=1]: " ARCH
+  ARCH=${ARCH:-1}
   if [ "$ARCH" = "2" ]; then
     ARCH_FLAG="--architecture arm64"
     XRAY_BIN="Xray-linux-arm64-v8a.zip"
     PLATFORM="linux/arm64"
-    echo -e "${GREEN}✅ ARM64 Graviton selected${NC}"
+    echo -e "${YELLOW}⚠️ ARM64 selected — if deploy fails, re-run with AMD64 option 1${NC}"
   else
     ARCH_FLAG=""
     XRAY_BIN="Xray-linux-64.zip"
     PLATFORM="linux/amd64"
-    echo -e "${GREEN}✅ AMD64 selected${NC}"
+    echo -e "${GREEN}✅ AMD64 selected (Qwiklabs compatible)${NC}"
   fi
 
   # --------------------------
@@ -196,7 +203,7 @@ deploy_service() {
   echo -e "${GREEN}✅ Billing Mode: $BMODE${NC}"
 
   # --------------------------
-  # 6. RESOURCE ALLOCATION (VALIDATED PER GCP 2026 RULES)
+  # 6. RESOURCE ALLOCATION (ACCEPTS BOTH `4` AND `4Gi`)
   # --------------------------
   echo -e "\n${CYAN}⚙️ RESOURCE ALLOCATION (AUTO-VALIDATED)${NC}"
   echo "Allowed vCPU options: 0.5 | 1 | 2 | 4"
@@ -204,10 +211,9 @@ deploy_service() {
     read -p "Enter vCPU count [default=2]: " CPU
     CPU=${CPU:-2}
     [[ "$CPU" =~ ^(0.5|1|2|4)$ ]] && break || \
-      echo -e "${RED}❌ Invalid! Allowed values: 0.5 / 1 / 2 / 4${NC}"
+      echo -e "${RED}❌ Invalid! Allowed: 0.5 / 1 / 2 / 4${NC}"
   done
 
-  # Enforce valid memory ranges per vCPU (GCP official limits)
   case $CPU in
     0.5) VALID_MEM=("256Mi" "512Mi" "1Gi") ;;
     1)   VALID_MEM=("512Mi" "1Gi" "2Gi" "4Gi") ;;
@@ -215,18 +221,33 @@ deploy_service() {
     4)   VALID_MEM=("2Gi" "4Gi" "8Gi" "16Gi") ;;
   esac
   echo -e "Valid memory for ${CPU} vCPU: ${VALID_MEM[*]}"
+  echo -e "${YELLOW}💡 TIP: You can type just the number (e.g. 4) OR full suffix (4Gi)${NC}"
   while true; do
-    read -p "Enter memory [default=${VALID_MEM[1]}]: " MEMORY
-    MEMORY=${MEMORY:-${VALID_MEM[1]}}
+    read -p "Enter memory [default=${VALID_MEM[1]}]: " MEM_INPUT
+    MEM_INPUT=${MEM_INPUT:-${VALID_MEM[1]}}
+    
+    # Auto-add Gi/Mi suffix if user typed only a number
+    if [[ "$MEM_INPUT" =~ ^[0-9]+$ ]]; then
+      if [[ " ${VALID_MEM[*]} " =~ " ${MEM_INPUT}Gi " ]]; then
+        MEMORY="${MEM_INPUT}Gi"
+      elif [[ " ${VALID_MEM[*]} " =~ " ${MEM_INPUT}Mi " ]]; then
+        MEMORY="${MEM_INPUT}Mi"
+      else
+        MEMORY=""
+      fi
+    else
+      MEMORY="$MEM_INPUT"
+    fi
+
+    # Validate
     VALID=0
     for V in "${VALID_MEM[@]}"; do
       [[ "$V" == "$MEMORY" ]] && VALID=1 && break
     done
     [[ $VALID -eq 1 ]] && break || \
-      echo -e "${RED}❌ Invalid for $CPU vCPU! Choose from: ${VALID_MEM[*]}${NC}"
+      echo -e "${RED}❌ Invalid! Choose from: ${VALID_MEM[*]}${NC}"
   done
 
-  # Auto-set concurrency based on resources
   if [[ "$CPU" =~ ^(0.5|1)$ ]]; then
     CONCURRENCY=300
   else
@@ -235,7 +256,7 @@ deploy_service() {
   echo -e "${GREEN}✅ Resources: ${CPU} vCPU / ${MEMORY} | Concurrency: ${CONCURRENCY}${NC}"
 
   # --------------------------
-  # 7. SCALING SETTINGS
+  # 7. SCALING
   # --------------------------
   echo -e "\n${CYAN}📈 AUTO-SCALING SETTINGS${NC}"
   while true; do
@@ -250,11 +271,11 @@ deploy_service() {
   done
 
   # --------------------------
-  # 8. PROTOCOL OPTIONS
+  # 8. PROTOCOL
   # --------------------------
   echo -e "\n${CYAN}🔐 PROTOCOL CONFIGURATION${NC}"
-  echo "1) Balanced: Trojan + VLESS WS/TLS (Original config)"
-  echo "2) ⭐ Add VLESS REALITY (Stealthiest 2026, anti-DPI)"
+  echo "1) Balanced: Trojan + VLESS WS/TLS"
+  echo "2) ⭐ Add VLESS REALITY (Stealthiest, anti-DPI)"
   read -p "Select [1-2, default=1]: " P_CHOICE
   P_CHOICE=${P_CHOICE:-1}
   SHORT_ID=""
@@ -263,18 +284,17 @@ deploy_service() {
     echo -e "${GREEN}✅ VLESS REALITY will be added${NC}"
   fi
 
-  # HTTP/2 option
   read -p "Enable HTTP/2 (faster WebSocket)? [Y/n]: " H2
   H2_FLAG=$([[ ! "${H2:-Y}" =~ ^[Nn]$ ]] && echo "--use-http2" || echo "")
 
-  # --------------------------
-  # 9. COST ESTIMATE (APPROX 2026 PRICING)
-  # --------------------------
-  echo -e "\n${YELLOW}💸 ESTIMATED MONTHLY COST${NC}"
-  echo "If min-instances = $MIN (always running): ~\$3.50/month"
-  echo "If min-instances = 0 (scale to zero): pay only for actual usage (~free tier eligible)"
+  # ✅ MONTHLY COST SECTION FULLY REMOVED ✅
 
-  read -p $'\n'"${GREEN}Proceed with deployment? [Y/n]: ${NC}" GO
+  # --------------------------
+  # PROCEED CONFIRMATION
+  # --------------------------
+  echo ""
+  echo -e "${GREEN}Proceed with deployment? [Y/n]: ${NC}\c"
+  read -r GO
   [[ "${GO:-Y}" =~ ^[Nn]$ ]] && { echo "Cancelled by user"; read; return; }
 
   # =====================================================
@@ -282,7 +302,6 @@ deploy_service() {
   # =====================================================
   echo -e "\n${CYAN}🔨 Preparing container build files...${NC}"
 
-  # 1. XRAY CORE CONFIG
   cat > config.json <<EOF
 {
   "log": { "loglevel": "warning" },
@@ -315,7 +334,6 @@ deploy_service() {
     }
 EOF
 
-  # Add REALITY inbound if selected
   if [ "$P_CHOICE" = "2" ]; then
     cat >> config.json <<EOF
     ,{
@@ -350,7 +368,6 @@ EOF
 }
 EOF
 
-  # 2. NGINX REVERSE PROXY CONFIG
   cat > nginx.conf <<'EOF'
 worker_processes auto; worker_rlimit_nofile 65535; worker_priority -10;
 events { worker_connections 4096; use epoll; multi_accept on; accept_mutex off; }
@@ -370,10 +387,8 @@ http {
 }
 EOF
 
-  # 3. ENTRYPOINT SCRIPT
   cat > entrypoint.sh <<'EOF'
 #!/bin/sh
-# Generate X25519 keys for REALITY at runtime if needed
 if grep -q "GENERATE_AT_RUNTIME" /etc/xray.json; then
   KEYS=$(/usr/local/bin/xray x25519 2>&1)
   PRIV=$(echo "$KEYS" | grep "Private" | awk '{print $3}')
@@ -387,9 +402,7 @@ exec /usr/local/openresty/bin/openresty -g 'daemon off;'
 EOF
   chmod +x entrypoint.sh
 
-  # 4. HARDENED DOCKERFILE (ALPINE 3.24 LATEST)
   cat > Dockerfile <<EOF
-# --- BUILDER STAGE ---
 FROM --platform=$PLATFORM alpine:3.24 AS builder
 RUN apk add --no-cache curl unzip ca-certificates openssl
 WORKDIR /build
@@ -397,7 +410,6 @@ RUN curl -fsSL "https://github.com/XTLS/Xray-core/releases/latest/download/$XRAY
   && unzip -q xray.zip xray \
   && chmod +x xray
 
-# --- FINAL RUNTIME IMAGE ---
 FROM --platform=$PLATFORM openresty/openresty:1.25.3.2-0-alpine-fat
 RUN addgroup -S xray && adduser -S xray -G xray
 COPY --from=builder /build/xray /usr/local/bin/xray
@@ -414,20 +426,18 @@ ENTRYPOINT ["/entrypoint.sh"]
 EOF
 
   # =====================================================
-  # 🏗️ BUILD IMAGE VIA CLOUD BUILD
+  # 🏗️ BUILD IMAGE (QWIKLABS SAFE — NO --machine-type)
   # =====================================================
   AR_REGION="us-central1"
   REPO="kiana-xray-repo"
   IMG="$AR_REGION-docker.pkg.dev/$PROJECT_ID/$REPO/$SERVICE_NAME"
 
-  # Auto-create repo if not exists
   gcloud artifacts repositories create "$REPO" --repository-format=docker \
     --location="$AR_REGION" --project="$PROJECT_ID" --quiet >/dev/null 2>&1 || true
   gcloud auth configure-docker "$AR_REGION-docker.pkg.dev" --quiet >/dev/null 2>&1
 
   echo -e "\n${CYAN}🏗️ Building container image on Cloud Build (2-5 mins)...${NC}"
-  gcloud builds submit --project="$PROJECT_ID" --tag "$IMG" \
-    --machine-type=e2-medium --quiet .
+  gcloud builds submit --project="$PROJECT_ID" --tag "$IMG" --quiet .
 
   # =====================================================
   # 🚀 DEPLOY TO CLOUD RUN
@@ -444,36 +454,27 @@ EOF
     $ARCH_FLAG $BILLING_FLAGS $H2_FLAG --quiet
 
   # =====================================================
-  # ✅ GET OUTPUT DATA + GENERATE CLIENT CONFIGS
+  # ✅ FINAL OUTPUT
   # =====================================================
   SERVICE_URL=$(gcloud run services describe "$SERVICE_NAME" --project="$PROJECT_ID" \
     --region="$REGION" --format='value(status.url)')
   REAL_DOMAIN="${SERVICE_URL#https://}"
 
-  # Fetch REALITY public key if enabled
   REALITY_PUB=""
   if [ "$P_CHOICE" = "2" ]; then
-    sleep 8
+    sleep 10
     REALITY_PUB=$(gcloud logging read \
       "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME AND textPayload:REALITY_PUB" \
       --project="$PROJECT_ID" --limit=1 --format='value(textPayload)' 2>/dev/null | \
       sed 's/REALITY_PUB=//' || echo "Check container logs")
   fi
 
-  # URL-encode paths for shareable links
   TR_PATH_ENC="%2Ftr-ws%3Fed%3D2560"
   VL_PATH_ENC="%2Fvl-ws%3Fed%3D2560"
 
-  # --------------------------
-  # GENERATE READY-TO-IMPORT LINKS
-  # WITH CUSTOM FIREBASE SNI + CORRECT HOST HEADER
-  # --------------------------
   TROJAN_LINK="trojan://${PASSWORD}@${CUSTOM_SNI_TROJAN}:443?path=${TR_PATH_ENC}&security=tls&type=ws&sni=${CUSTOM_SNI_TROJAN}&host=${REAL_DOMAIN}#KIANA-Trojan-${REGION}"
   VLESS_LINK="vless://${UUID}@${CUSTOM_SNI_VLESS}:443?encryption=none&path=${VL_PATH_ENC}&security=tls&type=ws&sni=${CUSTOM_SNI_VLESS}&host=${REAL_DOMAIN}#KIANA-VLESS-${REGION}"
 
-  # =====================================================
-  # 📺 FINAL DEPLOYMENT OUTPUT
-  # =====================================================
   clear
   echo -e "${GREEN}
 ╔══════════════════════════════════════════════════════════╗
@@ -521,18 +522,16 @@ EOF
   fi
   echo ""
   echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}📋 SHAREABLE LINKS (copy → import in v2rayN/NekoBox/etc):${NC}"
+  echo -e "${CYAN}📋 SHAREABLE LINKS:${NC}"
   echo -e "${YELLOW}$TROJAN_LINK${NC}"
   echo ""
   echo -e "${YELLOW}$VLESS_LINK${NC}"
   echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}💡 TIP: In your client, set Host = $REAL_DOMAIN (the real Cloud Run domain)${NC}"
-  echo -e "${CYAN}   while SNI/Address = Firebase domain. This is how the SNI trick works.${NC}"
   read -p "Press [Enter] to return to Main Menu..."
 }
 
 # =====================================================
-# 🎯 MAIN MENU LOOP — THIS IS WHAT WAS MISSING
+# 🎯 MAIN MENU
 # =====================================================
 while true; do
   clear
@@ -540,6 +539,7 @@ while true; do
 ╔══════════════════════════════════════════════╗
 ║      🚀 KIANA-3.1 ULTIMATE DEPLOYER         ║
 ║    Full English | Custom Firebase SNI       ║
+║    ✅ QWIKLABS FIXED | NO COST DISPLAY      ║
 ╚══════════════════════════════════════════════╝${NC}"
   echo -e "  ${GREEN}1)${NC} 🚀 Deploy NEW Balanced Xray Service"
   echo -e "  ${GREEN}2)${NC} 📋 List All Deployed Services + URLs"
