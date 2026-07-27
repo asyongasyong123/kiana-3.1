@@ -265,7 +265,7 @@ deploy_service() {
 
   # HTTP/2 option
   read -p "Enable HTTP/2 (faster WebSocket)? [Y/n]: " H2
-  H2_FLAG=$([[ ! "$H2" =~ ^[Nn]$ ]] && echo "--use-http2" || echo "")
+  H2_FLAG=$([[ ! "${H2:-Y}" =~ ^[Nn]$ ]] && echo "--use-http2" || echo "")
 
   # --------------------------
   # 9. COST ESTIMATE (APPROX 2026 PRICING)
@@ -275,7 +275,7 @@ deploy_service() {
   echo "If min-instances = 0 (scale to zero): pay only for actual usage (~free tier eligible)"
 
   read -p $'\n'"${GREEN}Proceed with deployment? [Y/n]: ${NC}" GO
-  [[ "$GO" =~ ^[Nn]$ ]] && { echo "Cancelled by user"; read; return; }
+  [[ "${GO:-Y}" =~ ^[Nn]$ ]] && { echo "Cancelled by user"; read; return; }
 
   # =====================================================
   # 📦 GENERATE BUILD FILES
@@ -405,7 +405,7 @@ COPY config.json /etc/xray.json
 COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /usr/local/bin/xray /entrypoint.sh \
-  && chown -R xray:xray /etc/xray.json /usr/local/openresty/nginx/logs/
+  && chown -R xray:xray /etc/xray.json /usr/local/openresty/nginx/logs/ /tmp
 USER xray
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
@@ -433,6 +433,7 @@ EOF
   # 🚀 DEPLOY TO CLOUD RUN
   # =====================================================
   echo -e "\n${CYAN}🚀 Deploying to Cloud Run...${NC}"
+  # shellcheck disable=SC2086
   gcloud run deploy "$SERVICE_NAME" \
     --image "$IMG" --project="$PROJECT_ID" --platform managed --region="$REGION" \
     --allow-unauthenticated --port 8080 --memory="$MEMORY" --cpu="$CPU" \
@@ -452,7 +453,7 @@ EOF
   # Fetch REALITY public key if enabled
   REALITY_PUB=""
   if [ "$P_CHOICE" = "2" ]; then
-    sleep 6
+    sleep 8
     REALITY_PUB=$(gcloud logging read \
       "resource.type=cloud_run_revision AND resource.labels.service_name=$SERVICE_NAME AND textPayload:REALITY_PUB" \
       --project="$PROJECT_ID" --limit=1 --format='value(textPayload)' 2>/dev/null | \
@@ -462,7 +463,6 @@ EOF
   # URL-encode paths for shareable links
   TR_PATH_ENC="%2Ftr-ws%3Fed%3D2560"
   VL_PATH_ENC="%2Fvl-ws%3Fed%3D2560"
-  HOST_ENC=$(echo "$REAL_DOMAIN" | sed 's/\./%2E/g')
 
   # --------------------------
   # GENERATE READY-TO-IMPORT LINKS
@@ -498,82 +498,60 @@ EOF
   echo -e "   ${YELLOW}Early Data  :${NC} 2560"
   echo -e "   ${YELLOW}TLS         :${NC} ON"
   echo -e "   ${YELLOW}SNI         :${NC} $CUSTOM_SNI_TROJAN"
-  echo -e "   ${YELLOW}WS Host     :${NC} $REAL_DOMAIN  ⬅️ CRITICAL FOR CLOUD RUN"
+  echo -e "   ${YELLOW}Host Header :${NC} $REAL_DOMAIN"
   echo ""
-  echo -e "   ${CYAN}📥 IMPORT LINK (copy to NetMod/v2rayN):${NC}"
-  echo "   $TROJAN_LINK"
-  echo ""
-  echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "${GREEN}🔹 VLESS + WS + TLS | CUSTOM FIREBASE SNI${NC}"
   echo -e "   ${YELLOW}Address     :${NC} $CUSTOM_SNI_VLESS"
   echo -e "   ${YELLOW}Port        :${NC} 443"
   echo -e "   ${YELLOW}UUID        :${NC} $UUID"
-  echo -e "   ${YELLOW}Encryption  :${NC} None"
-  echo -e "   ${YELLOW}Flow        :${NC} None"
   echo -e "   ${YELLOW}Transport   :${NC} WebSocket (WS)"
   echo -e "   ${YELLOW}Path        :${NC} /vl-ws"
   echo -e "   ${YELLOW}Early Data  :${NC} 2560"
   echo -e "   ${YELLOW}TLS         :${NC} ON"
   echo -e "   ${YELLOW}SNI         :${NC} $CUSTOM_SNI_VLESS"
-  echo -e "   ${YELLOW}WS Host     :${NC} $REAL_DOMAIN  ⬅️ CRITICAL FOR CLOUD RUN"
-  echo ""
-  echo -e "   ${CYAN}📥 IMPORT LINK (copy to NetMod/v2rayN):${NC}"
-  echo "   $VLESS_LINK"
-
-  # REALITY output if enabled
+  echo -e "   ${YELLOW}Host Header :${NC} $REAL_DOMAIN"
   if [ "$P_CHOICE" = "2" ]; then
     echo ""
-    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${GREEN}🔹 VLESS + REALITY (TCP | STEALTH ANTI-DPI)${NC}"
-    echo -e "   ${YELLOW}Address     :${NC} $REAL_DOMAIN"
-    echo -e "   ${YELLOW}Port        :${NC} 443"
+    echo -e "${GREEN}🔹 VLESS REALITY (XTLS Vision)${NC}"
     echo -e "   ${YELLOW}UUID        :${NC} $UUID"
     echo -e "   ${YELLOW}Flow        :${NC} xtls-rprx-vision"
-    echo -e "   ${YELLOW}SNI         :${NC} www.google.com"
     echo -e "   ${YELLOW}Public Key  :${NC} $REALITY_PUB"
     echo -e "   ${YELLOW}Short ID    :${NC} $SHORT_ID"
-    echo -e "   ${YELLOW}Security    :${NC} REALITY"
-    echo -e "   ${YELLOW}Fingerprint :${NC} chrome"
+    echo -e "   ${YELLOW}Dest/SNI    :${NC} www.google.com"
   fi
-
   echo ""
   echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${YELLOW}💡 NETMOD-SPECIFIC INSTRUCTIONS${NC}"
-  echo "   1. Copy the import link above → NetMod → + → Import from Clipboard"
-  echo "   2. After import, VERIFY these fields (critical!):"
-  echo "      • WebSocket → Host = $REAL_DOMAIN (NOT the Firebase domain!)"
-  echo "      • WebSocket → Path = /tr-ws OR /vl-ws (REMOVE ?ed=2560 from path)"
-  echo "      • WebSocket → Early Data = 2560 (put ed value here, separate field)"
-  echo "      • TLS = ON | SNI = Firebase domain (matches Address)"
-  echo "      • Port = 443 always (8080 is internal only)"
-  echo "   3. VLESS is recommended over Trojan for better NetMod stability"
-  echo "   4. ARM64 builds = faster crypto = lower ping on mobile"
-
-  read -p $'\nPress [Enter] to return to Main Menu...'
+  echo -e "${CYAN}📋 SHAREABLE LINKS (copy → import in v2rayN/NekoBox/etc):${NC}"
+  echo -e "${YELLOW}$TROJAN_LINK${NC}"
+  echo ""
+  echo -e "${YELLOW}$VLESS_LINK${NC}"
+  echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+  echo -e "${CYAN}💡 TIP: In your client, set Host = $REAL_DOMAIN (the real Cloud Run domain)${NC}"
+  echo -e "${CYAN}   while SNI/Address = Firebase domain. This is how the SNI trick works.${NC}"
+  read -p "Press [Enter] to return to Main Menu..."
 }
 
 # =====================================================
-# 🎯 MAIN MENU LOOP
+# 🎯 MAIN MENU LOOP — THIS IS WHAT WAS MISSING
 # =====================================================
 while true; do
   clear
   echo -e "${MAGENTA}
-╔══════════════════════════════════════╗
-║   🚀 KIANA-3.1 ULTIMATE DEPLOYER    ║
-║   Full English | Custom Firebase SNI║
-╚══════════════════════════════════════╝${NC}"
-  echo "1) 🚀 Deploy NEW Balanced Xray Service"
-  echo "2) 📋 List All Deployed Services + URLs"
-  echo "3) 🗑️ Delete a Deployed Service"
-  echo "4) ❌ Exit Script"
-  echo "======================================"
-  read -p "Select option [1-4]: " M
-
-  case $M in
+╔══════════════════════════════════════════════╗
+║      🚀 KIANA-3.1 ULTIMATE DEPLOYER         ║
+║    Full English | Custom Firebase SNI       ║
+╚══════════════════════════════════════════════╝${NC}"
+  echo -e "  ${GREEN}1)${NC} 🚀 Deploy NEW Balanced Xray Service"
+  echo -e "  ${GREEN}2)${NC} 📋 List All Deployed Services + URLs"
+  echo -e "  ${GREEN}3)${NC} 🗑️ Delete a Deployed Service"
+  echo -e "  ${GREEN}4)${NC} ❌ Exit Script"
+  echo ""
+  read -p "Select option [1-4]: " CHOICE
+  case ${CHOICE:-} in
     1) deploy_service ;;
     2) list_services ;;
     3) delete_service ;;
-    4) echo -e "\n👋 Goodbye! Safe deployments!"; exit 0 ;;
-    *) echo -e "${RED}❌ Invalid selection! Enter 1-4 only.${NC}"; sleep 1.5 ;;
+    4) clear; echo -e "${GREEN}👋 Goodbye!${NC}"; exit 0 ;;
+    *) echo -e "${RED}❌ Invalid option!${NC}"; sleep 1 ;;
   esac
 done
