@@ -105,7 +105,7 @@ deploy_new_service() {
   echo -e "${GREEN}✅ CANONICAL SHORT LINK + FULL SETUP INFO${NC}"
   echo -e "${GREEN}✅ AUTO MODE: 3 PRESETS | MANUAL MODE${NC}"
   echo -e "${GREEN}✅ REGION SELECTOR + TAIWAN${NC}"
-  echo -e "${GREEN}✅ BALANCED XRAY/NGINX CONFIG${NC}"
+  echo -e "${GREEN}✅ BALANCED XRAY/NGINX${NC}"
   echo -e "${CYAN}=========================================${NC}"
   echo -e "${GREEN}✅ Project:${NC} $PROJECT_ID"
   echo -e "${GREEN}✅ Region:${NC} $REGION"
