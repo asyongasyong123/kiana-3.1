@@ -101,8 +101,8 @@ deploy_new_service() {
   clear
   echo ""
   echo -e "${CYAN}=========================================${NC}"
-  echo -e "${GREEN}     TROJAN + VLESS WS/TLS${NC}"
-  echo -e "${GREEN}     BALANCED SPEED & LOW BATTERY${NC}"
+  echo -e "${GREEN}     TROJAN + VLESS WS/TLS DEPLOYER BY Con Fig${NC}"
+  echo -e "${GREEN}     BALANCED SPEED & LIGHTWEIGHT DEPLOYER${NC}"
   echo -e "${CYAN}=========================================${NC}"
   echo -e "${GREEN}✅ Project:${NC} $PROJECT_ID"
   echo -e "${GREEN}✅ Region:${NC} $REGION"
