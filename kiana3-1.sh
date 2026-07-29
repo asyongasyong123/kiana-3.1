@@ -95,7 +95,7 @@ deploy_new_service() {
 
   PROJECT_ID="$(gcloud config get-value project 2>/dev/null)"
   RAND=$(openssl rand -hex 3 2>/dev/null)
-  CLOUD_RUN_SERVICE_NAME="xray-balanced-$RAND"
+  CLOUD_RUN_SERVICE_NAME="xray-con-$RAND"
   BUILD_DIR=$(mktemp -d)
 
   cleanup() { rm -rf "$BUILD_DIR" || true; }
