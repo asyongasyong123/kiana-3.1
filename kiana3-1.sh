@@ -3,7 +3,7 @@ set -euo pipefail
 
 # =========================================
 # 🚀 KIANA-3.1 GCP DEPLOYER | FINAL VERSION
-# ✅ CANONICAL SHORT LINK + FULL SETUP INFO
+# ✅ CANONICAL SHORT LINK + FULL LINK ONLY
 # ✅ AUTO MODE: 3 PRESETS | MANUAL MODE
 # ✅ REGION SELECTOR + TAIWAN
 # ✅ BALANCED XRAY/NGINX CONFIG
@@ -102,7 +102,7 @@ deploy_new_service() {
   echo ""
   echo -e "${CYAN}=========================================${NC}"
   echo -e "${GREEN}🚀 KIANA-3.1 GCP DEPLOYER | By Con Fig${NC}"
-  echo -e "${GREEN}✅ CANONICAL SHORT LINK + FULL SETUP INFO${NC}"
+  echo -e "${GREEN}✅ CANONICAL SHORT LINK + FULL LINK${NC}"
   echo -e "${GREEN}✅ AUTO MODE: 3 PRESETS | MANUAL MODE${NC}"
   echo -e "${GREEN}✅ REGION SELECTOR + TAIWAN${NC}"
   echo -e "${GREEN}✅ BALANCED XRAY/NGINX${NC}"
@@ -248,8 +248,8 @@ http {
     listen 8080; server_name _;
     location /health { return 200 "OK\n"; add_header Content-Type text/plain; }
     location / { proxy_pass https://www.google.com; proxy_set_header Host www.google.com; }
-    location /tr-ws { proxy_pass http://127.0.0.1:10001; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade; proxy_set_header Host $host; }
-    location /vl-ws { proxy_pass http://127.0.0.1:10002; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade; proxy_set_header Host $host; }
+    location /tr-ws { proxy_pass http://127.0.0.1:10001; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade; }
+    location /vl-ws { proxy_pass http://127.0.0.1:10002; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade; }
   }
 }
 EOF
@@ -291,21 +291,19 @@ EOF
     --timeout $TIMEOUT --min-instances $MIN_INST --max-instances $MAX_INST \
     --execution-environment gen2 --cpu-boost $BILLING_FLAGS --quiet
 
-  # Get Final Domain
+  # Get Final Links
   CLOUD_RUN_URL=$(gcloud run services describe $CLOUD_RUN_SERVICE_NAME --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')
-  DOMAIN=$(echo "$CLOUD_RUN_URL" | sed 's|https://||')
-  CANONICAL_LINK="https://$DOMAIN"
+  SHORT_LINK="$CLOUD_RUN_URL"
+  FULL_LINK="$CLOUD_RUN_URL"
 
-  # ==============================================
-  # ✅ CLEAN OUTPUT + FULL SETUP INFO
-  # ==============================================
+  # ✅ CLEAN OUTPUT: Only Short Link + Full Link, no Full Domain
   clear
   echo -e "\n${CYAN}=========================================${NC}"
   echo -e "${GREEN}✅ DEPLOYMENT SUCCESS!${NC}"
   echo -e "${CYAN}=========================================${NC}"
-  echo -e "${GREEN}🔗 CANONICAL / SHORT LINK:${NC} $CANONICAL_LINK"
-  echo -e "${GREEN}🌐 FULL DOMAIN:${NC} $DOMAIN"
-  echo -e "${GREEN}💚 HEALTH CHECK:${NC} https://$DOMAIN/health"
+  echo -e "${GREEN}🔗 CANONICAL / SHORT LINK:${NC} $SHORT_LINK"
+  echo -e "${GREEN}🌐 FULL LINK:${NC} $FULL_LINK"
+  echo -e "${GREEN}💚 HEALTH CHECK:${NC} $FULL_LINK/health"
   echo ""
   echo -e "${CYAN}📋 SETUP DETAILS:${NC}"
   echo -e "• Service Name: $CLOUD_RUN_SERVICE_NAME"
