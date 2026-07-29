@@ -3,7 +3,7 @@ set -euo pipefail
 
 # =========================================
 # 🚀 KIANA-3.1 GCP DEPLOYER | FINAL VERSION
-# ✅ CANONICAL SHORT LINK + FULL LINK
+# ✅ CANONICAL SHORT LINK + FULL SETUP INFO
 # ✅ AUTO MODE: 3 PRESETS | MANUAL MODE
 # ✅ REGION SELECTOR + TAIWAN
 # ✅ BALANCED XRAY/NGINX CONFIG
@@ -100,7 +100,6 @@ deploy_new_service() {
 
   clear
   echo ""
-  # ✅ YOUR REQUESTED HEADER IS RESTORED HERE
   echo -e "${CYAN}=========================================${NC}"
   echo -e "${GREEN}🚀 KIANA-3.1 GCP DEPLOYER | By Con Fig${NC}"
   echo -e "${GREEN}✅ CANONICAL SHORT LINK + FULL SETUP INFO${NC}"
@@ -292,19 +291,21 @@ EOF
     --timeout $TIMEOUT --min-instances $MIN_INST --max-instances $MAX_INST \
     --execution-environment gen2 --cpu-boost $BILLING_FLAGS --quiet
 
-  # Get links
+  # Get Final Domain
   CLOUD_RUN_URL=$(gcloud run services describe $CLOUD_RUN_SERVICE_NAME --project="$PROJECT_ID" --region="$REGION" --format='value(status.url)')
-  SHORT_LINK="$CLOUD_RUN_URL"
-  FULL_LINK="$CLOUD_RUN_URL"
+  DOMAIN=$(echo "$CLOUD_RUN_URL" | sed 's|https://||')
+  CANONICAL_LINK="https://$DOMAIN"
 
-  # ✅ CLEAN SUCCESS OUTPUT (No duplicate Full Domain)
+  # ==============================================
+  # ✅ CLEAN OUTPUT + FULL SETUP INFO
+  # ==============================================
   clear
   echo -e "\n${CYAN}=========================================${NC}"
   echo -e "${GREEN}✅ DEPLOYMENT SUCCESS!${NC}"
   echo -e "${CYAN}=========================================${NC}"
-  echo -e "${GREEN}🔗 CANONICAL / SHORT LINK:${NC} $SHORT_LINK"
-  echo -e "${GREEN}🌐 FULL LINK:${NC} $FULL_LINK"
-  echo -e "${GREEN}💚 HEALTH CHECK:${NC} $FULL_LINK/health"
+  echo -e "${GREEN}🔗 CANONICAL / SHORT LINK:${NC} $CANONICAL_LINK"
+  echo -e "${GREEN}🌐 FULL DOMAIN:${NC} $DOMAIN"
+  echo -e "${GREEN}💚 HEALTH CHECK:${NC} https://$DOMAIN/health"
   echo ""
   echo -e "${CYAN}📋 SETUP DETAILS:${NC}"
   echo -e "• Service Name: $CLOUD_RUN_SERVICE_NAME"
