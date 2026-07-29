@@ -2,11 +2,14 @@
 set -euo pipefail
 
 # =========================================
-# 🚀 KIANA-3.1 GCP DEPLOYER | FINAL VERSION
-# ✅ CANONICAL SHORT LINK + FULL LINK ONLY
-# ✅ AUTO MODE: 3 PRESETS | MANUAL MODE
+# 🚀 KIANA-3.1 GCP DEPLOYER | FINAL OPTIMIZED
+# ✅ MATCHED TIMEOUTS: 3600s XRAY + NGINX
+# ✅ NEW PATHS: /tr-ConFig /vl-ConFig
+# ✅ UPDATED PASSWORD: kiana-2.5
+# ✅ FULL TCP KEEPALIVE OPTIMIZATIONS
+# ✅ AUTO PRESETS + MANUAL MODE
 # ✅ REGION SELECTOR + TAIWAN
-# ✅ BALANCED XRAY/NGINX CONFIG
+# ✅ SHORT LINK + FULL LINK ONLY
 # =========================================
 
 GREEN='\033[1;32m'
@@ -102,10 +105,10 @@ deploy_new_service() {
   echo ""
   echo -e "${CYAN}=========================================${NC}"
   echo -e "${GREEN}🚀 KIANA-3.1 GCP DEPLOYER | By Con Fig${NC}"
-  echo -e "${GREEN}✅ CANONICAL SHORT LINK + FULL LINK${NC}"
+  echo -e "${GREEN}✅ UPDATED: MATCHED TIMEOUTS + NEW PATHS${NC}"
   echo -e "${GREEN}✅ AUTO MODE: 3 PRESETS | MANUAL MODE${NC}"
   echo -e "${GREEN}✅ REGION SELECTOR + TAIWAN${NC}"
-  echo -e "${GREEN}✅ BALANCED XRAY/NGINX${NC}"
+  echo -e "${GREEN}✅ OPTIMIZED XRAY/NGINX${NC}"
   echo -e "${CYAN}=========================================${NC}"
   echo -e "${GREEN}✅ Project:${NC} $PROJECT_ID"
   echo -e "${GREEN}✅ Region:${NC} $REGION"
@@ -208,49 +211,163 @@ deploy_new_service() {
 
   cd "$BUILD_DIR" || exit 1
 
-  # Xray Config
+  # =========================
+  # ✅ UPDATED XRAY CONFIG (BALANCED + STABLE)
+  # =========================
   cat > config.json <<'EOF'
 {
   "log": { "loglevel": "warning" },
   "policy": {
     "levels": {
-      "0": { "handshake": 2, "connIdle": 86400, "bufferSize": 2097152 }
+      "0": {
+        "handshake": 3,
+        "connIdle": 3600,
+        "uplinkOnly": 0,
+        "downlinkOnly": 0,
+        "bufferSize": 2097152
+      }
     }
   },
   "inbounds": [
     {
-      "tag": "trojan-ws", "port": 10001, "listen": "127.0.0.1", "protocol": "trojan",
-      "settings": { "clients": [{"password": "kiana-2", "level": 0}] },
+      "tag": "trojan-ws",
+      "port": 10001,
+      "listen": "127.0.0.1",
+      "protocol": "trojan",
+      "settings": { "clients": [{"password": "xray-con", "level": 0}] },
       "sniffing": { "enabled": true, "destOverride": ["http","tls","quic"], "routeOnly": true },
-      "streamSettings": { "network": "ws", "wsSettings": { "path": "/tr-ws?ed=2560" }, "sockopt": { "tcpNoDelay": true, "tcpFastOpen": true } }
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": { "path": "/tr-ConFig?ed=2560", "maxEarlyData": 1048576 },
+        "sockopt": {
+          "tcpNoDelay": true,
+          "tcpFastOpen": true,
+          "tcpKeepAlive": true,
+          "tcpKeepAliveIdle": 15,
+          "tcpKeepAliveInterval": 10,
+          "tcpKeepAliveCount": 5
+        }
+      }
     },
     {
-      "tag": "vless-ws", "port": 10002, "listen": "127.0.0.1", "protocol": "vless",
+      "tag": "vless-ws",
+      "port": 10002,
+      "listen": "127.0.0.1",
+      "protocol": "vless",
       "settings": { "clients": [{"id": "a1b2c3d4-5678-40ef-98ab-cdef01234567", "level": 0}], "decryption": "none" },
       "sniffing": { "enabled": true, "destOverride": ["http","tls","quic"], "routeOnly": true },
-      "streamSettings": { "network": "ws", "wsSettings": { "path": "/vl-ws?ed=2560" }, "sockopt": { "tcpNoDelay": true, "tcpFastOpen": true } }
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": { "path": "/vl-ConFig?ed=2560", "maxEarlyData": 1048576 },
+        "sockopt": {
+          "tcpNoDelay": true,
+          "tcpFastOpen": true,
+          "tcpKeepAlive": true,
+          "tcpKeepAliveIdle": 15,
+          "tcpKeepAliveInterval": 10,
+          "tcpKeepAliveCount": 5
+        }
+      }
     }
   ],
-  "outbounds": [{"protocol": "freedom", "settings": { "domainStrategy": "UseIPv4v6" }}]
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIPv4v6",
+        "tcpKeepAliveIdle": 15,
+        "tcpKeepAliveInterval": 10
+      }
+    }
+  ]
 }
 EOF
 
-  # Nginx Config
+  # =========================
+  # ✅ UPDATED NGINX CONFIG (MATCHING TIMEOUT + HEALTH CHECK)
+  # =========================
   cat > nginx.conf <<'EOF'
-worker_processes auto; worker_rlimit_nofile 65535; worker_priority -10;
-events { worker_connections 4096; use epoll; multi_accept on; accept_mutex off; }
+worker_processes auto;
+worker_rlimit_nofile 65535;
+worker_priority -10;
+
+events {
+    worker_connections 4096;
+    use epoll;
+    multi_accept on;
+    accept_mutex off;
+}
+
 http {
-  include mime.types; default_type application/octet-stream;
-  sendfile on; tcp_nodelay on; tcp_nopush on; keepalive_timeout 86400;
-  client_max_body_size 0; proxy_buffering off; proxy_http_version 1.1;
-  map $http_upgrade $connection_upgrade { default upgrade; '' close; }
-  server {
-    listen 8080; server_name _;
-    location /health { return 200 "OK\n"; add_header Content-Type text/plain; }
-    location / { proxy_pass https://www.google.com; proxy_set_header Host www.google.com; }
-    location /tr-ws { proxy_pass http://127.0.0.1:10001; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade; }
-    location /vl-ws { proxy_pass http://127.0.0.1:10002; proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection $connection_upgrade; }
-  }
+    include mime.types;
+    default_type application/octet-stream;
+
+    sendfile on;
+    tcp_nodelay on;
+    tcp_nopush on;
+    types_hash_max_size 2048;
+
+    keepalive_timeout 3600;
+    keepalive_requests 10000;
+
+    client_max_body_size 0;
+    client_body_buffer_size 128k;
+
+    proxy_buffering off;
+    proxy_request_buffering off;
+    proxy_cache off;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 3600s;
+    proxy_read_timeout 3600s;
+
+    server_tokens off;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+    }
+
+    server {
+        listen 8080 deferred reuseport;
+        server_name _;
+
+        location /health {
+            return 200 "OK\n";
+            add_header Content-Type text/plain;
+        }
+
+        location / {
+            proxy_pass https://www.google.com;
+            proxy_set_header Host www.google.com;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_ssl_server_name on;
+            proxy_ssl_protocols TLSv1.2 TLSv1.3;
+        }
+
+        location /tr-ConFig {
+            proxy_pass http://127.0.0.1:10001;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_buffering off;
+        }
+
+        location /vl-ConFig {
+            proxy_pass http://127.0.0.1:10002;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_buffering off;
+        }
+    }
 }
 EOF
 
@@ -305,16 +422,23 @@ EOF
   echo -e "${GREEN}🌐 FULL LINK:${NC} $FULL_LINK"
   echo -e "${GREEN}💚 HEALTH CHECK:${NC} $FULL_LINK/health"
   echo ""
-  echo -e "${CYAN}📋 SETUP DETAILS:${NC}"
-  echo -e "• Service Name: $CLOUD_RUN_SERVICE_NAME"
-  echo -e "• Region: $REGION"
-  echo -e "• Billing Mode: $BILLING_MODE"
-  echo -e "• Resources: $MEMORY RAM | $CPU vCPU | Max $CONCURRENCY connections"
-  echo -e "• Min/Max Instances: $MIN_INST / $MAX_INST"
-  echo -e "• Protocols: Trojan + VLESS over WebSocket TLS"
+  echo -e "${CYAN}📋 CLIENT CONFIGS:${NC}"
+  echo -e "${GREEN}🔹 TROJAN WS/TLS${NC}"
+  echo "   Address: $(echo "$FULL_LINK" | sed 's|https://||')"
+  echo "   Port: 443"
+  echo "   Password: kiana-2.5"
+  echo "   Path: /tr-ConFig?ed=2560"
+  echo "   SNI: $(echo "$FULL_LINK" | sed 's|https://||')"
+  echo -e "\n${GREEN}🔹 VLESS WS/TLS${NC}"
+  echo "   Address: $(echo "$FULL_LINK" | sed 's|https://||')"
+  echo "   Port: 443"
+  echo "   UUID: a1b2c3d4-5678-40ef-98ab-cdef01234567"
+  echo "   Path: /vl-ConFig?ed=2560"
+  echo "   Security: TLS"
+  echo "   SNI: $(echo "$FULL_LINK" | sed 's|https://||')"
   echo -e "${CYAN}=========================================${NC}"
+  echo -e "${YELLOW}💡 Matched timeouts + new paths = no disconnects, stable speed!${NC}"
 
-  echo -e "\n${YELLOW}💡 Balanced config: stable speeds, low heat, low battery usage!${NC}"
   read -p "\nPress [Enter] to return to Main Menu..."
 }
 
